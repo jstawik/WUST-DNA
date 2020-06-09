@@ -6,6 +6,7 @@ import com.typesafe.scalalogging.Logger
 import scala.collection.mutable
 import scala.concurrent.Await
 import scala.util.Random
+import scala.reflect._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -14,39 +15,38 @@ class Network extends Actor{
   implicit val timeout: Timeout = Timeout(5 seconds)
   val r: Random = Random
   val logger: Logger = Logger(s"${self.path.name}")
-  val nodes = mutable.Map.empty[String, ActorRef]
-  val neighs = mutable.Map.empty[String, mutable.Set[ActorRef]]
+
+  var nodes = Map.empty[String, ActorRef]
 
   def receive: Receive = {
     case AskValue => sender() ! r.nextDouble * 5
-    case MakeGrid(n) => makeGrid(n)
-    case Broadcast(MaxValue(temperature)) => neighs(sender().path.name).map(_ ! MaxValue(temperature))
-    case CommAction("maxPropagation") => nodes.values.map(n => n ! CommAction("broadcastTemperature"))
+    case MakeGrid(n) => makeGrid[PropagateMax](n)
+    case CommAction("maxPropagation") => nodes.values.map(n => n ! CommAction("broadcastValue"))
     case CommAction("plotGrid") => Plotter.makeHeatMap(gridView(), "Grid View")
     case SetValue(node, value) => nodes(node) ! GiveValue(value)
     case _ => logger.error(s"Unhandled message from ${sender().path.name}")
   }
 
-  def makeGrid(side: Int): Unit = {
+  def makeGrid[T <: Node: ClassTag](side: Int): Unit = {
     val coord = (x: Int, y:Int) => s"node_${x}_$y"
     for(x <- 0 until side){
       for(y <- 0 until side){
-        val newNode = context.actorOf(Props(classOf[PropagateMax], self, r.nextDouble*5), coord(x,y))
-        nodes += (coord(x,y) -> newNode)
-        neighs += (coord(x,y) -> mutable.Set.empty)
+        val newNode = context.actorOf(Props(classTag[T].runtimeClass, self), coord(x,y))
+        nodes = nodes + (coord(x,y) -> newNode)
       }
     }
     for(x <- 0 until side){
       for(y <- 0 until side){
         val newNeighs = (i: Int) => List(i-1, i+1).filter(_>=0).filter(_<side)
-        for(i <- newNeighs(x)) neighs(coord(x,y)) += nodes(coord(i,y))
-        for(i <- newNeighs(y)) neighs(coord(x,y)) += nodes(coord(x,i))
+        for(i <- newNeighs(x)) nodes(coord(x, y)) ! GiveNeighbour(nodes(coord(i, y)))
+        for(i <- newNeighs(y)) nodes(coord(x, y)) ! GiveNeighbour(nodes(coord(x, i)))
       }
     }
     logger.debug("makeGrid ran")
     logger.debug(s"nodes is now: $nodes")
-    logger.debug(s"neighs is now: $neighs")
+    scrambleValues()
   }
+  def scrambleValues(): Unit = nodes.values.foreach(_ ! GiveValue(r.nextDouble()*5))
 
   def gridView(): Seq[Seq[Double]] = {
     var nodeView = Seq.empty[(Int, Int, Double)]
