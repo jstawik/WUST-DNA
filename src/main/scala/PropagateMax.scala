@@ -1,5 +1,7 @@
 import akka.actor._
 
+case class GiveValuePropagateMax(value: GiveValue[PropagateMax])
+
 class PropagateMax(network: ActorRef) extends Node(network){
   var maxSeen: Double = 0
   def propagateMaxReceive: Receive = {
