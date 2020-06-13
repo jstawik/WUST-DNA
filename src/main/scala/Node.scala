@@ -16,7 +16,7 @@ abstract class Node(val network: ActorRef) extends Actor with ActorLogging{
   def commonReceive: Receive = {
     case GiveNeighbour(neighbour) => neighs = neighs :+ neighbour
     case CommAction("askValue") => askValue()
-    case GiveValue(receivedValue) =>
+    case GiveValue(receivedValue, _) =>
       logger.debug(s"Received GiveValue: $receivedValue")
       value = receivedValue
     case AskValue =>
