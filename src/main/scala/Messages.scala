@@ -1,13 +1,8 @@
 import akka.actor.ActorRef
-
-abstract class NodeType
-case object PropagateMaxType extends NodeType
-case object PropagateMinType extends NodeType
-case object AverageCountingType extends NodeType
-case object UnknownType extends NodeType
+import scala.reflect.ClassTag
 
 case object AskValue
-case class GiveValue(value: Double, to: NodeType = UnknownType)
+case class GiveValue[T <: Node: ClassTag](value: Double)
 case class MakeGrid(n: Int)
 case class Broadcast(message: Any)
 case class CommAction(command: String)

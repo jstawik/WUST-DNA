@@ -13,13 +13,13 @@ import scala.language.postfixOps
 
 class Network extends Actor{
   implicit val timeout: Timeout = Timeout(5 seconds)
-  val r: Random = Random
+  val value = () => Random.nextDouble() * 5
   val logger: Logger = Logger(s"${self.path.name}")
 
   var nodes = Map.empty[String, ActorRef]
 
   def receive: Receive = {
-    case AskValue => sender() ! r.nextDouble * 5
+    case AskValue => sender() ! value()
     case MakeGrid(n) => makeGrid[PropagateMax](n)
     case CommAction("maxPropagation") => nodes.values.map(n => n ! CommAction("broadcastValue"))
     case CommAction("plotGrid") => Plotter.makeHeatMap(gridView(), "Grid View")
@@ -44,9 +44,9 @@ class Network extends Actor{
     }
     logger.debug("makeGrid ran")
     logger.debug(s"nodes is now: $nodes")
-    scrambleValues()
+    scrambleValues[T]()
   }
-  def scrambleValues(): Unit = nodes.values.foreach(_ ! GiveValue(r.nextDouble()*5))
+  def scrambleValues[T <: Node: ClassTag](): Unit = nodes.values.foreach(_ ! GiveValue[T](value()))
 
   def gridView(): Seq[Seq[Double]] = {
     var nodeView = Seq.empty[(Int, Int, Double)]

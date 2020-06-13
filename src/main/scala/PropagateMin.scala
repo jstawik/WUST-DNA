@@ -6,9 +6,9 @@ class PropagateMin(network: ActorRef) extends Node(network){
    */
   var minSeen: Double = 0
   def propagateMaxReceive: Receive = {
-    case CommAction("broadcastValue") => neighs.foreach(_ ! GiveValue(minSeen, PropagateMaxType))
+    case CommAction("broadcastValue") => neighs.foreach(_ ! GiveValue[PropagateMin](minSeen))
       logger.debug(s"broadcastValue ran: $value")
-    case GiveValue(receivedValue, _) =>
+    case GiveValue(receivedValue) =>
       value = receivedValue
       minSeen = receivedValue.min(minSeen)
     case AskValue =>
