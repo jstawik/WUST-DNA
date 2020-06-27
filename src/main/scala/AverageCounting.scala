@@ -9,7 +9,12 @@ class AverageCounting(network: ActorRef, var data: Double) extends Node(network)
       minNode ! GiveNeighbour(neighbour)
     case message: GiveValuePropagateMax => maxNode ! message
     case message: GiveValuePropagateMin => minNode ! message
-    case _ => logger.error(s"Unhandled message from ${sender().path.name}")
+    case CommAction("networkReady") => networkReady()
   }
   override def receive: Receive = averageCountingReceive orElse commonReceive
+  def networkReady() = {
+    logger.debug("networkReady received, running min and max")
+    maxNode ! CommAction("autoPropagate")
+    minNode ! CommAction("autoPropagate")
+  }
 }

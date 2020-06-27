@@ -2,6 +2,10 @@ import akka.actor.{ActorSystem, Props}
 
 object Simulator {
   def main(args: Array[String]): Unit = {
+    maxPropDemo()
+  }
+
+  def maxPropDemo(): Unit = {
     val system = ActorSystem("simulation")
     val network = system.actorOf(Props[Network], "network")
     def gridUpdate(): Unit = {
@@ -14,3 +18,4 @@ object Simulator {
     system.terminate()
   }
 }
+

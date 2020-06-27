@@ -45,6 +45,7 @@ class Network extends Actor{
     logger.debug("makeGrid ran")
     logger.debug(s"nodes is now: $nodes")
     scrambleValues[T]()
+    nodes.foreach(_._2 ! CommAction("networkReady"))
   }
   def scrambleValues[T <: Node: ClassTag](): Unit = nodes.values.foreach(_ ! GiveValue[T](value()))
 

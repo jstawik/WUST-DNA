@@ -7,16 +7,20 @@ class PropagateMin(network: ActorRef) extends Node(network){
      This could be rewritten to accept any monoid as an argument to implement any such function
    */
   var minSeen: Double = 0
-  def propagateMaxReceive: Receive = {
+  def propagateMinReceive: Receive = {
     case CommAction("broadcastValue") => neighs.foreach(_ ! GiveValue[PropagateMin](minSeen))
       logger.debug(s"broadcastValue ran: $value")
+    case CommAction("autoPropagate") => neighs.foreach(_ ! AutoValue[PropagateMin](minSeen))
+    case AutoValue(receivedValue) =>
+      if(receivedValue > minSeen){
+        minSeen = receivedValue
+        neighs.foreach(_ ! AutoValue[PropagateMin](minSeen))
+      }
     case GiveValue(receivedValue) =>
       value = receivedValue
       minSeen = receivedValue.min(minSeen)
     case AskValue =>
       sender() ! minSeen
   }
-  def broadcastTemperature(): Unit = {
-  }
-  def receive: Receive = propagateMaxReceive orElse commonReceive
+  def receive: Receive = propagateMinReceive orElse commonReceive
 }

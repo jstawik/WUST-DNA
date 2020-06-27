@@ -21,6 +21,7 @@ abstract class Node(val network: ActorRef) extends Actor with ActorLogging{
       value = receivedValue
     case AskValue =>
       sender() ! value
+    case CommAction("networkReady") =>
     case _ => logger.error(s"Unhandled message from ${sender().path.name}")
   }
   implicit val timeout: Timeout = Timeout(5 seconds)
