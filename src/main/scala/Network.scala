@@ -13,7 +13,7 @@ import scala.language.postfixOps
 
 class Network extends Actor{
   implicit val timeout: Timeout = Timeout(5 seconds)
-  val value = () => Random.nextDouble() * 5
+  private val value = () => Random.nextDouble() * 5
   val logger: Logger = Logger(s"${self.path.name}")
 
   var nodes = Map.empty[String, ActorRef]
@@ -21,10 +21,18 @@ class Network extends Actor{
   def receive: Receive = {
     case AskValue => sender() ! value()
     case MakeGrid(n) => makeGrid[PropagateMax](n)
+    case MakeNetwork(networkType, networkShape, params) =>  makeNetwork(networkType, networkShape, params)
     case CommAction("maxPropagation") => nodes.values.map(n => n ! CommAction("broadcastValue"))
     case CommAction("plotGrid") => Plotter.makeHeatMap(gridView(), "Grid View")
     case SetValue(node, value) => nodes(node) ! GiveValue(value)
     case _ => logger.error(s"Unhandled message from ${sender().path.name}")
+  }
+  def makeNetwork[T <: Node: ClassTag](noteType: T, networkShape: String, params: Map[String, Any]): Unit ={
+    networkShape match {
+      case "grid" => makeGrid[T]((params getOrElse ("n", 100)).asInstanceOf[Int])
+      case "line" => makeLine[T]((params getOrElse ("n", 100)).asInstanceOf[Int])
+      case _ => logger.error(s"Unhandled message from ${sender().path.name}" + s" unknown networkShape: $networkShape")
+    }
   }
 
   def makeGrid[T <: Node: ClassTag](side: Int): Unit = {
@@ -43,6 +51,20 @@ class Network extends Actor{
       }
     }
     logger.debug("makeGrid ran")
+    logger.debug(s"nodes is now: $nodes")
+    scrambleValues[T]()
+    nodes.foreach(_._2 ! CommAction("networkReady"))
+  }
+  def makeLine[T <: Node: ClassTag](n: Int): Unit = {
+    val coord = (i: Int) => s"node_$i"
+    for(i <- 0 until n){
+      val newNode = context.actorOf(Props(classTag[T].runtimeClass, self), coord(i))
+    }
+    for(i <- 0 until n){
+      val newNeighs = (i: Int) => List(i-1, i+1).filter(_>=0).filter(_<n)
+      for(j <- newNeighs(i)) nodes(coord(i)) ! GiveNeighbour(nodes(coord(j)))
+    }
+    logger.debug("makeLine ran")
     logger.debug(s"nodes is now: $nodes")
     scrambleValues[T]()
     nodes.foreach(_._2 ! CommAction("networkReady"))
