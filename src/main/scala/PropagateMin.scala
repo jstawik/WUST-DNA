@@ -7,7 +7,7 @@ class PropagateMin(network: ActorRef) extends Node(network){
      This could be rewritten to accept any monoid as an argument to implement any such function
    */
   var minSeen: Double = 0
-  def propagateMinReceive: Receive = {
+  def averageCountingReceive : Receive = {
     case CommAction("broadcastValue") => neighs.foreach(_ ! GiveValue[PropagateMin](minSeen))
       logger.debug(s"broadcastValue ran: $value")
     case CommAction("autoPropagate") => neighs.foreach(_ ! AutoValue[PropagateMin](minSeen))
@@ -22,5 +22,4 @@ class PropagateMin(network: ActorRef) extends Node(network){
     case AskValue =>
       sender() ! minSeen
   }
-  def receive: Receive = propagateMinReceive orElse commonReceive
 }
