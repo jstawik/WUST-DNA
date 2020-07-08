@@ -4,7 +4,7 @@ case class GiveValuePropagateMax(value: GiveValue[PropagateMax])
 
 class PropagateMax(network: ActorRef) extends Node(network){
   var maxSeen: Double = 0
-  override def individualReceive: Receive = {
+  def individualReceive: Receive = {
     case CommAction("broadcastValue") => neighs.foreach(_ ! GiveValue[PropagateMax](maxSeen))
       logger.debug(s"broadcastValue ran: $value")
     case CommAction("autoPropagate") => neighs.foreach(_ ! AutoValue[PropagateMax](maxSeen))

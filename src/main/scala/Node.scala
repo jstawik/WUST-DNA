@@ -12,7 +12,7 @@ abstract class Node(val network: ActorRef) extends Actor with ActorLogging{
   var value: Double = 0.0
   var sent: Int = 0
   var neighs = Seq.empty[ActorRef]
-  abstract def individualReceive: Receive = {case _ => }
+  def individualReceive: Receive
   def commonReceive: Receive = {
     case GiveNeighbour(neighbour) => neighs = neighs :+ neighbour
     case CommAction("askValue") => askValue()
