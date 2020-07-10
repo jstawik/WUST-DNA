@@ -33,6 +33,7 @@ class AverageCounting(network: ActorRef, diameter: Int, intervals: Int, variable
         for(i <- temp_row.indices) data(index)(i) = temp_row(i)
         network ! Broadcast(GiveACInterval(index, temp_row))
       }
+    case CommAction("reportResults") => sender() ! reportResults()
 
   }
   def networkReady(): Unit = {
@@ -51,7 +52,11 @@ class AverageCounting(network: ActorRef, diameter: Int, intervals: Int, variable
     }
     network ! Broadcast(GiveACInterval(individualInterval, for{row <- data} yield row(individualInterval)))
   }
-  def resultPrepare(): Unit ={
-
+  def reportResults(): Double = {
+    val S: Array[Double] = data.map(_.sum)
+    val H: Array[Double] = S.map(a => if (a > 0) (variables-1)/a else 0)
+    val S1 = (for(i <- H.indices) yield minSeen + interval*(i - 1/2)*H(i)).sum
+    val S2 = H.sum
+    S1/S2
   }
 }
