@@ -21,18 +21,15 @@ class Network extends Actor{
   def receive: Receive = {
     case AskValue => sender() ! value()
     case MakeGrid(n) => makeGrid[PropagateMax](n)
-    case MakeNetwork(networkType, networkShape, params) =>  makeNetwork(networkType, networkShape, params)
+    case f @ MakeNetwork(networkShape, params) => networkShape match {
+      case "grid" => makeGrid((params getOrElse ("n", 100)).asInstanceOf[Int])(f.ct)
+      case "line" => makeLine((params getOrElse ("n", 100)).asInstanceOf[Int])(f.ct)
+      case _ => logger.error(s"Unhandled message from ${sender().path.name}" + s" unknown networkShape: $networkShape")
+    }
     case CommAction("maxPropagation") => nodes.values.map(n => n ! CommAction("broadcastValue"))
     case CommAction("plotGrid") => Plotter.makeHeatMap(gridView(), "Grid View")
     case SetValue(node, value) => nodes(node) ! GiveValue(value)
     case _ => logger.error(s"Unhandled message from ${sender().path.name}")
-  }
-  def makeNetwork[T <: Node: ClassTag](noteType: T, networkShape: String, params: Map[String, Any]): Unit ={
-    networkShape match {
-      case "grid" => makeGrid[T]((params getOrElse ("n", 100)).asInstanceOf[Int])
-      case "line" => makeLine[T]((params getOrElse ("n", 100)).asInstanceOf[Int])
-      case _ => logger.error(s"Unhandled message from ${sender().path.name}" + s" unknown networkShape: $networkShape")
-    }
   }
 
   def makeGrid[T <: Node: ClassTag](side: Int): Unit = {

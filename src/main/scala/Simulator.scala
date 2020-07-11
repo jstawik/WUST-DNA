@@ -1,5 +1,7 @@
 import akka.actor.{ActorSystem, Props}
 
+import scala.reflect.ClassTag
+
 object Simulator {
   def main(args: Array[String]): Unit = {
     maxPropDemo()
@@ -11,10 +13,10 @@ object Simulator {
     def gridUpdate(): Unit = {
       network ! CommAction("maxPropagation")
       network ! CommAction("plotGrid")
-      Thread.sleep(3000)
+      Thread.sleep(500)
     }
-    network ! MakeGrid(50)
-    for(i <- 1 to 20) gridUpdate()
+    network ! MakeNetwork[PropagateMax]("grid", Map("n" -> 500))
+    for(i <- 1 to 10) gridUpdate()
     system.terminate()
   }
 }
