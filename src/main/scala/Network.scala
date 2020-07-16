@@ -22,9 +22,10 @@ class Network extends Actor{
     case AskValue => sender() ! value()
     case MakeGrid(n) => makeGrid[PropagateMax](n)
     case f @ MakeNetwork(networkShape, params) => networkShape match {
-      case "grid" => makeGrid((params getOrElse ("side", 100)).asInstanceOf[Int])(f.ct)
-      case "line" => makeLine((params getOrElse ("n", 100)).asInstanceOf[Int])(f.ct)
-      case "gridClique" => makeGridClique((params getOrElse ("side", 100)).asInstanceOf[Int], (params getOrElse("csize", 10)).asInstanceOf[Int])(f.ct)
+      case "grid" => makeGrid(params.getOrElse("side", 100).asInstanceOf[Int])(f.ct)
+      case "line" => makeLine(params.getOrElse("n", 100).asInstanceOf[Int])(f.ct)
+      case "gridClique" => makeGridClique(params.getOrElse("side", 100).asInstanceOf[Int], params.getOrElse("csize", 10).asInstanceOf[Int])(f.ct)
+      case "randomGeometric" => makeRandomGeometric(params.getOrElse("count", 100).asInstanceOf[Int], params.getOrElse("radius", 0.1).asInstanceOf[Double])(f.ct)
       case _ => logger.error(s"Unhandled message from ${sender().path.name}" + s" unknown networkShape: $networkShape")
     }
     case CommAction("maxPropagation") => nodes.values.map(n => n ! CommAction("broadcastValue"))
@@ -33,8 +34,10 @@ class Network extends Actor{
     case _ => logger.error(s"Unhandled message from ${sender().path.name}")
   }
 
+
+
   /**
-   * Adds a Grid-Clique graph of nodes. First 4 nodes in clique are the gateways, mapping being 0123 <-> NWES
+   * Adds a Grid-Clique graph of nodes. First 4 nodes in clique are the gateways, mapping being 0123 <-> NWES and are required
    * @param side Side of the macro grid
    * @param csize Count of nodes in a clique
    * @tparam T Type of node
@@ -68,6 +71,11 @@ class Network extends Actor{
     nodes.foreach(_._2 ! CommAction("networkReady"))
   }
 
+  /**
+   * Create a sqaure grid of nodes
+   * @param side Side of grid
+   * @tparam T Type of nodes
+   */
   def makeGrid[T <: Node: ClassTag](side: Int): Unit = {
     val coord = (x: Int, y:Int) => s"node_${x}_$y"
     for(x <- 0 until side){
@@ -88,6 +96,12 @@ class Network extends Actor{
     scrambleValues[T]()
     nodes.foreach(_._2 ! CommAction("networkReady"))
   }
+
+  /**
+   * Create a line of nodes
+   * @param n Length of nodes
+   * @tparam T Type of nodes
+   */
   def makeLine[T <: Node: ClassTag](n: Int): Unit = {
     val coord = (i: Int) => s"node_$i"
     for(i <- 0 until n){
@@ -103,8 +117,33 @@ class Network extends Actor{
     scrambleValues[T]()
     nodes.foreach(_._2 ! CommAction("networkReady"))
   }
+
+  /**
+   * Create a random Geometric graph
+   * @param count Node count
+   * @param radius Maximum connection length
+   * @tparam T Type of node
+   */
+  def makeRandomGeometric[T <: Node: ClassTag](count: Int, radius: Double): Unit = {
+    val metric = (x0: Double, y0: Double, x1: Double, y1: Double) => Math.sqrt(Math.pow(x0-x1, 2) + Math.pow(y0-y1, 2)) <= radius
+    val coord = (i: (Int, Double, Double)) => s"node_${i._1}"
+    val list = for{i <- 0 until count} yield (i, Random.nextDouble(), Random.nextDouble())
+    for(i <- list) nodes = nodes + (coord(i) -> context.actorOf(Props(classTag[T].runtimeClass, self), coord(i)))
+    for(from <- list){
+      for(to <- list if to != from) if(metric(from._1, from._2, to._1, to._2)) nodes(coord(from)) ! GiveNeighbour(nodes(coord(to)))
+    }
+  }
+
+  /**
+   * Force each node to refresh it's value
+   * @tparam T Node type
+   */
   def scrambleValues[T <: Node: ClassTag](): Unit = nodes.values.foreach(_ ! GiveValue[T](value()))
 
+  /**
+   * Generate a matrix of grid's values
+   * @return 2D matrix in which each field is a value of node with respective coordinates.
+   */
   def gridView(): Seq[Seq[Double]] = {
     var nodeView = Seq.empty[(Int, Int, Double)]
     for(node <- nodes){
