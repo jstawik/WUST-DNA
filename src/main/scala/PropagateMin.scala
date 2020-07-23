@@ -19,7 +19,6 @@ class PropagateMin(network: ActorRef) extends Node(network){
     case GiveValue(receivedValue) =>
       value = receivedValue
       minSeen = receivedValue.min(minSeen)
-    case AskValue =>
-      sender() ! minSeen
   }
+  def result(): Double = minSeen
 }

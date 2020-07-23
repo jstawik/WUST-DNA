@@ -19,8 +19,8 @@ abstract class Node(val network: ActorRef) extends Actor with ActorLogging{
     case GiveValue(receivedValue) =>
       logger.debug(s"Received GiveValue: $receivedValue")
       value = receivedValue
-    case AskValue =>
-      sender() ! value
+    case AskValue => sender() ! value
+    case AskResult => sender() ! result()
     case CommAction("networkReady") =>
     case _ => logger.error(s"Unhandled message from ${sender().path.name}")
   }
@@ -31,6 +31,7 @@ abstract class Node(val network: ActorRef) extends Actor with ActorLogging{
     val future = network ? AskValue
     value = Await.result(future, timeout.duration).asInstanceOf[Double]
   }
+  def result(): Double
 }
 
 

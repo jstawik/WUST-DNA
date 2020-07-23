@@ -33,16 +33,15 @@ class AverageCounting(network: ActorRef, diameter: Int, intervals: Int, variable
         for(i <- temp_row.indices) data(index)(i) = temp_row(i)
         network ! Broadcast(GiveACInterval(index, temp_row))
       }
-    case CommAction("reportResults") => sender() ! reportResults()
 
   }
   def networkReady(): Unit = {
     logger.debug("networkReady received, running min and max")
     maxNode ! CommAction("autoPropagate")
-    val maxFuture = maxNode ? AskValue
+    val maxFuture = maxNode ? AskResult
     maxSeen = Await.result(maxFuture, timeout.duration).asInstanceOf[Double]
     minNode ! CommAction("autoPropagate")
-    val minFuture = minNode ? AskValue
+    val minFuture = minNode ? AskResult
     minSeen = Await.result(minFuture, timeout.duration).asInstanceOf[Double]
     range = maxSeen - minSeen
     interval = range/intervals
@@ -52,7 +51,7 @@ class AverageCounting(network: ActorRef, diameter: Int, intervals: Int, variable
     }
     network ! Broadcast(GiveACInterval(individualInterval, for{row <- data} yield row(individualInterval)))
   }
-  def reportResults(): Double = {
+  def result(): Double = {
     val S: Array[Double] = data.map(_.sum)
     val H: Array[Double] = S.map(a => if (a > 0) (variables-1)/a else 0)
     val S1 = (for(i <- H.indices) yield minSeen + interval*(i - 1/2)*H(i)).sum

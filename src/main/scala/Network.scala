@@ -30,6 +30,10 @@ class Network extends Actor{
     }
     case CommAction("maxPropagation") => nodes.values.map(n => n ! CommAction("broadcastValue"))
     case CommAction("plotGrid") => Plotter.makeHeatMap(gridView(), "Grid View")
+    case Evaluate(f) =>
+      val actual = nodes.map(rec => askValue(rec._2)).reduce(f(_, _))
+      val res =  nodes.map(rec => askData(rec._2, AskResult))
+      sender() ! Evaluation(actual, res.reduce(_.max(_)), res.reduce(_.min(_)), res.sum/res.size)
     case SetValue(node, value) => nodes(node) ! GiveValue(value)
     case _ => logger.error(s"Unhandled message from ${sender().path.name}")
   }
@@ -135,6 +139,29 @@ class Network extends Actor{
   }
 
   /**
+   * Create a `n`-regular graph. The graph will not be random. This means, each node will be as if set on a ring and
+   * connected to `n` nearest neighbours for even `n`s. For odd each node will also be connected to the one on the
+   * opposite side.
+   * @param count Node count
+   * @param n Each node's degree
+   * @tparam T Type of node
+   */
+  def makeNRegular[T <: Node: ClassTag](count: Int, n: Int): Unit = {
+    if ((n * count % 2) != 0) throw new IllegalArgumentException("`count` * `n` can't be odd")
+    val coord = (i: Int) => s"node_$i"
+    for (i <- 0 until n) nodes = nodes + (coord(i) -> context.actorOf(Props(classTag[T].runtimeClass, self), coord(i)))
+    for (i <- 0 until n) {
+      for (j <- 1 to n/2){
+        nodes(coord(j)) ! GiveNeighbour(nodes(coord(i+j)))
+        nodes(coord(i+j)) ! GiveNeighbour(nodes(coord(i)))
+      }
+      if(n % 2 != 0 ){
+        nodes(coord(i)) ! GiveNeighbour(nodes(coord((i+n/2)%n)))
+        nodes(coord((i+n/2)%n)) ! GiveNeighbour(nodes(coord(i)))
+      }
+    }
+  }
+  /**
    * Force each node to refresh it's value
    * @tparam T Node type
    */
@@ -149,8 +176,7 @@ class Network extends Actor{
     for(node <- nodes){
       val x = node._1.split("_")(1).toInt
       val y = node._1.split("_")(2).toInt
-      val future = node._2 ? AskValue
-      val value = Await.result(future, timeout.duration).asInstanceOf[Double]
+      val value = askValue(node._2)
       nodeView = nodeView.appended(x, y, value)
     }
     val n = nodeView.distinctBy(_._1).size
@@ -161,5 +187,10 @@ class Network extends Actor{
     logger.debug(s"gridView about to return: $gridView")
     gridView.map(_.toSeq)
   }
+  def askData(node: ActorRef, message: Product): Double = {
+    val future = node ? message
+    Await.result(future, timeout.duration).asInstanceOf[Double]
+  }
+  def askValue(node: ActorRef): Double = askData(node, AskValue)
 }
 

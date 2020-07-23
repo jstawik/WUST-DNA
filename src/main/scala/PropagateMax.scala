@@ -3,6 +3,7 @@ import akka.actor._
 case class GiveValuePropagateMax(value: GiveValue[PropagateMax])
 
 class PropagateMax(network: ActorRef) extends Node(network){
+
   var maxSeen: Double = 0
   def individualReceive: Receive = {
     case CommAction("broadcastValue") => neighs.foreach(_ ! GiveValue[PropagateMax](maxSeen))
@@ -16,7 +17,6 @@ class PropagateMax(network: ActorRef) extends Node(network){
     case GiveValue(receivedValue) =>
       value = receivedValue
       maxSeen = receivedValue.max(maxSeen)
-    case AskValue =>
-      sender() ! maxSeen
   }
+  def result(): Double = maxSeen
 }
