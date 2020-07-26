@@ -45,12 +45,12 @@ What topics should be discussed / described in the thesis (these are merely some
 						\item the idea of probabilistic counting and application of probabilistic counters to aggregation in large datasets
 						\item description of the algorithm \textsc{HistMean} from \cite{JCi:2018:Histograms} and the approach
 							  to averaging time-series data from \cite{Nugroho:2020:AveragingTS}
-						\item brief mention of some other important algorithm for distributed data aggregation known from literature
+						\item brief mention of some other important algorithms for distributed data aggregation known from literature
 					\end{itemize}
 			\item simulations of distributed computing systems -- what are the key issues, some examples of existing solutions / distributed computing platform etc. 
 		\end{enumerate}
 	
-	\item sescription of the implemented simulator (rather concise)
+	\item description of the implemented simulator (rather concise)
 		\begin{enumerate}[label*=\arabic*.]
 			\item motivations (\emph{``Why I've designed and implemented a custom solution instead of using one of the existing simulators?''}) and project objectives
 			\item technical aspects of the implementation (short description of used technologies and design patterns), architecture, design objectives etc. 
@@ -74,7 +74,7 @@ What topics should be discussed / described in the thesis (these are merely some
 	  
 	 \item simulation results -- experimental evaluation of estimator's precision and message complexity
 		 \begin{enumerate}[label*=\arabic*.]
-		 	\item presentation (tables, graphs, charts, ...) and discussion on the obtained results of simulations for different scenarios -- 
+		 	\item presentation (tables, graphs, charts, ...) and discussion on the obtained results of simulations for different scenarios
 		 		\begin{itemize}
 		 			\item different variants of the algorithm
 		 			\item different input data (various distributions of the data, different network sizes $n$)
@@ -111,16 +111,16 @@ bidirectional links between nodes. Two stations $u, v \in V$ can communicate dir
 Assumptions on the considered theoretical model: 
 \begin{itemize}
 	\item \textbf{We'll discuss the details during the next call}
-	\item each station observes a stream of data $(s^{(v)}_t)_t \geq 0$ arriving in consecutive time instants $t = 0, 1, \dotsc$-- like in \cite{Nugroho:2020:AveragingTS}
-	\item our goal is to calculate the estimations $(avg_t)_t\geq 0$ in a fully distributed manner, where
+	\item each station observes a stream of data $(s^{(v)}_t)_{t \geq 0}$ arriving in consecutive time instants $t = 0, 1, \dotsc$-- like in \cite{Nugroho:2020:AveragingTS}
+	\item our goal is to calculate the estimations $(avg_t)_{t\geq 0}$ in a fully distributed manner, where
 		\[
 			avg_t \stackrel{\text{df}}{=} \frac {\sum_{v \in V} s^{(v)}_t}{n}
 		\]
 	\item we will consider certain modifications of the method proposed in \cite{Nugroho:2020:AveragingTS}, which extends the approach based on approximate histograms
 		introduced in \cite{JCi:2018:Histograms}.
-	\item communication model -- like in \cite{JCi:2018:Histograms} (different model than in \cite{Nugroho:2020:AveragingTS}), i.e. broadcast-cased communication instead of gossip-based
+	\item communication model -- like in \cite{JCi:2018:Histograms} (different model than in \cite{Nugroho:2020:AveragingTS}), i.e. broadcast-based communication instead of gossip-based
 		(\textbf{this is only my suggestion -- you can choose what you prefer)}
-	\item measures of precision -- I suggest implementing and calculating both measures --  $\text{err}(\text{wm}(\vec{C}_L,\text{wm}\vec{H})$ introduced in \cite{JCi:2018:Histograms}
+	\item measures of precision -- I suggest implementing and calculating both measures of precision, i.e. $\text{err}(\text{wm}(\vec{C}_L,\text{wm}\vec{H})$ introduced in \cite{JCi:2018:Histograms}
 		and $\eta$ from \cite{Nugroho:2020:AveragingTS}. We'll see what we'll get. In the thesis we can e.g. briefly mention, that the precision can be defined in different ways, 
 		depending on the specific applications, considered scenarios etc.
 	\item considered strategies (some modification of the approach of counting ``leavers'' and ``joiners'' for each interval):
@@ -128,7 +128,7 @@ Assumptions on the considered theoretical model:
 			\item variant $0$ -- for each $t$ we independently run the \textsc{HistMean} algorithm with fixed $L$ and $K$
 			\item variant $1$ -- the strategy from \cite{Nugroho:2020:AveragingTS} -- probabilistic counters for ``leavers'' $C^{leave}_{L,i}$ and ``joiners'' $C^{join}_{L,i}$
 				for each interval $I_i$, $i \in \{1, \dotsc, K\}$  (the number of leavers and joiners will grow as
-				$t \to \infty$ $\Rightarrow$ I suppose, that the error related to probabilistic counters will also grow and the precision will be lost for large $t$,
+				$t \to \infty$ $\Rightarrow$ I suppose that the error related to probabilistic counters will also grow and the precision will be lost for large $t$,
 				but this is only a conjecture and this may not be the case -- we should investigate this)\\
 				Q: In \cite{Nugroho:2020:AveragingTS} there was a flag $r_{flag}$, which affects the exchange of messages -- should we embed this mechanism in the
 				broadcast-based communication or not? We'll discuss it during the next call.
@@ -138,18 +138,18 @@ Assumptions on the considered theoretical model:
 	\item in each case we will calculate the estimator's precision (as a function of the time $t$) for different network sizes $n$ (e.g. $n = 10,\,100,\,1000,\,5000$)
 	\item distribution of the input data
 		\begin{itemize}
-			\item in the basic scenarios we assume that data are independent (at least there is no spatial dependence)
+			\item in the basic scenarios we assume that the data are independent (at least there is no spatial dependence)
 			\item uniform distribution over some interval $[m, M]$ (e.g. over the unit interval)
 			\item data for which the stations ``will change intervals'' rarely
 			\item data for which the changes of intervals will be very frequent
 		\end{itemize}
-	\item for some scenarios and network topologies calculate the message complexity (the number of messages exchanged)
+	\item for some scenarios and network topologies calculate the message complexity (the number of exchanged messages)
 \end{itemize}
 
 \section*{Future work}
 \begin{itemize}
 	\item data are generated with different intensities, some stations update their values more frequently than the others
-	\item data streams are not time-homogeneous -- the distribution of the data $(s^{(v)}_t)_t \geq 0$ for a given station $v$ may vary in time
+	\item data streams are not time-homogeneous -- the distribution of the data $(s^{(v)}_t)_{t \geq 0}$ for a given station $v$ may vary in time
 	\item spatial and temporal dependencies of data
 	\item communication errors -- broken links, nodes failures
 \end{itemize}
