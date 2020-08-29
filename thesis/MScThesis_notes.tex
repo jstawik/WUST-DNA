@@ -1,0 +1,160 @@
+\documentclass[a4paper, 12pt]{article}
+\usepackage[a4paper,left=2.5cm,right=2.5cm,top=2cm,bottom=2cm,marginpar=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage[english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{times}
+
+\usepackage{graphicx}
+\usepackage[dvipsnames]{xcolor}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathtools}
+
+\usepackage{enumitem}
+\renewcommand\labelitemii{--}
+\renewcommand\labelitemi{$\circ$}
+
+\usepackage{bm}
+
+%% Asymptotic notations
+\newcommand{\BigO}[1]{\mathrm{O}\left(#1\right)}
+\newcommand{\BigTheta}[1]{\mathrm{\Theta}\left(#1\right)}
+
+\usepackage[pdfauthor={Kubuś Puchatek},pdftitle={e2z1},%
+pdfstartview={FitH}, pdftex, colorlinks=false, %plainpages=false,%pdfpagelabels=false, 
+bookmarks={true}]{hyperref}
+\usepackage[all]{hypcap}
+
+\begin{document}
+
+\section*{MSc Thesis}
+What topics should be discussed / described in the thesis (these are merely some suggestions!).
+\begin{enumerate}[label*=\arabic*.]
+	\item introduction -- preliminaries, description of the studied problem and literature survey
+		\begin{enumerate}[label*=\arabic*.]
+			\item preliminaries -- notations used, some mathematical / theoretical definitions, main theorems etc.
+			\item a short paragraph about wireless sensor networks (WSNs) / algorithmics of WSNs.
+			\item distributed data aggregation (incl. large datasets / data streams) / data aggregation in WSNs
+					\begin{itemize}
+						\item formulation of the problem
+						\item the idea of probabilistic counting and application of probabilistic counters to aggregation in large datasets
+						\item description of the algorithm \textsc{HistMean} from \cite{JCi:2018:Histograms} and the approach
+							  to averaging time-series data from \cite{Nugroho:2020:AveragingTS}
+						\item brief mention of some other important algorithms for distributed data aggregation known from literature
+					\end{itemize}
+			\item simulations of distributed computing systems -- what are the key issues, some examples of existing solutions / distributed computing platform etc. 
+		\end{enumerate}
+	
+	\item description of the implemented simulator (rather concise)
+		\begin{enumerate}[label*=\arabic*.]
+			\item motivations (\emph{``Why I've designed and implemented a custom solution instead of using one of the existing simulators?''}) and project objectives
+			\item technical aspects of the implementation (short description of used technologies and design patterns), architecture, design objectives etc. 
+			\item implemented features, main use cases, what it offers and how it works, possible directions for further extension / improvements
+			\item comparison with existing solutions (if there will be enough time)
+		\end{enumerate}
+	
+	\item averaging time-series data -- applications of the implemented simulator to the study of selected problems in distributed aggregation of large datasets in WSNs
+		  by the example of building distributed data sketches and averaging of time-series data in WSNs
+		  \begin{enumerate}[label*=\arabic*.]
+		  	\item motivations and description of considered scenarios.
+		  	\item description of considered variants of analyzed algorithms (some modifications of the approach from \cite{Nugroho:2020:AveragingTS}).
+		  	\item quantities of interest -- which parameters / properties of considered algorithms will be analyzed and why? 
+		  		\begin{itemize}
+		  			\item estimator's precision
+		  			\item communication complexity (message complexity) for selected families of graphs -- e.g. line graphs $L_n$, grid graphs $G_{k \times k}$,
+		  				  random geometric graphs $\mathcal{R}_{n,r}$, 
+		  			$d$-regular graphs, ``grid-of-cliques'', etc. $\rightarrow$ choose up to $2$--$3$ examples
+		  		\end{itemize} 
+		  \end{enumerate} 
+	  
+	 \item simulation results -- experimental evaluation of estimator's precision and message complexity
+		 \begin{enumerate}[label*=\arabic*.]
+		 	\item presentation (tables, graphs, charts, ...) and discussion on the obtained results of simulations for different scenarios
+		 		\begin{itemize}
+		 			\item different variants of the algorithm
+		 			\item different input data (various distributions of the data, different network sizes $n$)
+		 			\item parameter 1: precision of the obtained estimates of the average
+		 			\item parameter 2: message complexity for certain network topologies
+		 		\end{itemize}
+	 		\item analysis of the results of performed experimental research, drawing some conclusions and stating hypotheses
+		 \end{enumerate} 
+	 
+	 \item theoretical analysis of some selected properties of the considered protocols for averaging and building distributed data sketches 
+	 		\begin{itemize}
+	 			\item based on the obtained simulation results we should choose some quantity, e.g. estimator's precision, state some hypotheses and
+	 					try to prove some theoretical results in the assumed formal model
+	 			\item it suffices to show one -- two sample results
+	 			\item e.g. something like ``In the basic variant $A$ of the averaging algorithms, the estimator's probabilistic error grows as $t \to \infty$''.
+	 				  and ``In the strategy implemented in the variant $B$, the estimator's probabilistic error depends on the parameter $R$ and for constant $R$ tends
+	 				  to $0$ in expectation as the numbers of counters $L$ grows.''
+	 			\item what will be analyzed -- we'll take a look at the experimental results and decide, what seems to be achievable in 2-3 weeks (we don't have a lot of time)
+	 		\end{itemize}
+ 		
+ 	\item Summary
+ 		\begin{itemize}
+ 			\item summary of the obtained experimental and theoretical results
+ 			\item conclusions
+ 			\item open problems and future work
+ 		\end{itemize}
+	 
+\end{enumerate}
+
+\section*{Considered scenarios}
+The network will be modeled by a simple, connected and undirected graph $G=(V,E)$ with $|V| = n$ vertices representing the stations and $|E| = m$ edges corresponding to
+bidirectional links between nodes. Two stations $u, v \in V$ can communicate directly if and only if $\{u,v\} \in E$...
+
+Assumptions on the considered theoretical model: 
+\begin{itemize}
+	\item \textbf{We'll discuss the details during the next call}
+	\item each station observes a stream of data $(s^{(v)}_t)_{t \geq 0}$ arriving in consecutive time instants $t = 0, 1, \dotsc$-- like in \cite{Nugroho:2020:AveragingTS}
+	\item our goal is to calculate the estimations $(avg_t)_{t\geq 0}$ in a fully distributed manner, where
+		\[
+			avg_t \stackrel{\text{df}}{=} \frac {\sum_{v \in V} s^{(v)}_t}{n}
+		\]
+	\item we will consider certain modifications of the method proposed in \cite{Nugroho:2020:AveragingTS}, which extends the approach based on approximate histograms
+		introduced in \cite{JCi:2018:Histograms}.
+	\item communication model -- like in \cite{JCi:2018:Histograms} (different model than in \cite{Nugroho:2020:AveragingTS}), i.e. broadcast-based communication instead of gossip-based
+		(\textbf{this is only my suggestion -- you can choose what you prefer)}
+	\item measures of precision -- I suggest implementing and calculating both measures of precision, i.e. $\text{err}(\text{wm}(\vec{C}_L,\text{wm}\vec{H})$ introduced in \cite{JCi:2018:Histograms}
+		and $\eta$ from \cite{Nugroho:2020:AveragingTS}. We'll see what we'll get. In the thesis we can e.g. briefly mention, that the precision can be defined in different ways, 
+		depending on the specific applications, considered scenarios etc.
+	\item considered strategies (some modification of the approach of counting ``leavers'' and ``joiners'' for each interval):
+		\begin{itemize}
+			\item variant $0$ -- for each $t$ we independently run the \textsc{HistMean} algorithm with fixed $L$ and $K$
+			\item variant $1$ -- the strategy from \cite{Nugroho:2020:AveragingTS} -- probabilistic counters for ``leavers'' $C^{leave}_{L,i}$ and ``joiners'' $C^{join}_{L,i}$
+				for each interval $I_i$, $i \in \{1, \dotsc, K\}$  (the number of leavers and joiners will grow as
+				$t \to \infty$ $\Rightarrow$ I suppose that the error related to probabilistic counters will also grow and the precision will be lost for large $t$,
+				but this is only a conjecture and this may not be the case -- we should investigate this)\\
+				Q: In \cite{Nugroho:2020:AveragingTS} there was a flag $r_{flag}$, which affects the exchange of messages -- should we embed this mechanism in the
+				broadcast-based communication or not? We'll discuss it during the next call.
+			\item variant $2$ -- ``reset'' the counters every $R^{\text{th}}$ round (e.g. $joiners \gets \max\{joiners - leavers,0\}$, $leavers \gets 0$)
+			\item variant $3$ -- every $R^{\text{th}}$ round ``reset'' the counters by running the \textsc{HistMean} algorithm from scratch
+		\end{itemize}
+	\item in each case we will calculate the estimator's precision (as a function of the time $t$) for different network sizes $n$ (e.g. $n = 10,\,100,\,1000,\,5000$)
+	\item distribution of the input data
+		\begin{itemize}
+			\item in the basic scenarios we assume that the data are independent (at least there is no spatial dependence)
+			\item uniform distribution over some interval $[m, M]$ (e.g. over the unit interval)
+			\item data for which the stations ``will change intervals'' rarely
+			\item data for which the changes of intervals will be very frequent
+		\end{itemize}
+	\item for some scenarios and network topologies calculate the message complexity (the number of exchanged messages)
+\end{itemize}
+
+\section*{Future work}
+\begin{itemize}
+	\item data are generated with different intensities, some stations update their values more frequently than the others
+	\item data streams are not time-homogeneous -- the distribution of the data $(s^{(v)}_t)_{t \geq 0}$ for a given station $v$ may vary in time
+	\item spatial and temporal dependencies of data
+	\item communication errors -- broken links, nodes failures
+\end{itemize}
+
+\bibliographystyle{alpha}
+\bibliography{references}
+
+\end{document}
