@@ -1,22 +1,20 @@
 import akka.actor._
 
-case class GiveValuePropagateMax(value: GiveValue[PropagateMax])
-
-class PropagateMax(network: ActorRef) extends Node(network){
+class PropagateMax(diameter: Int) extends Node(diameter){
 
   var maxSeen: Double = 0
   def individualReceive: Receive = {
-    case CommAction("broadcastValue") => neighs.foreach(_ ! GiveValue[PropagateMax](maxSeen))
-      logger.debug(s"broadcastValue ran: $value")
-    case CommAction("autoPropagate") => neighs.foreach(_ ! AutoValue[PropagateMax](maxSeen))
-    case AutoValue(receivedValue) =>
-      if(receivedValue > maxSeen){
-        maxSeen = receivedValue
-        neighs.foreach(_ ! AutoValue[PropagateMax](maxSeen))
-      }
+    case SingleStep =>
+      neighs.foreach(_ ! GiveValuePropagateMax(maxSeen))
+      logger.debug(s"SingleStep ran for ${self.path}: $value")
     case GiveValue(receivedValue) =>
+      logger.debug(s"Received value $receivedValue")
       value = receivedValue
       maxSeen = receivedValue.max(maxSeen)
+    case GiveValuePropagateMax(receivedValue) =>
+      logger.debug(s"GiveValuePropagateMax receivedValue: $receivedValue")
+      maxSeen = receivedValue.max(maxSeen)
+      synchronizationCheck(sender)
   }
   def result(): Double = maxSeen
 }

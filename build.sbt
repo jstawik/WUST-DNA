@@ -1,4 +1,4 @@
-name := "WSN_alt"
+name := "WUST-DNA"
 
 version := "0.1"
 
