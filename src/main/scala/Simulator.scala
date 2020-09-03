@@ -38,7 +38,7 @@ class MaxPropDemo extends Actor with ActorDefaults {
 class ACDemo extends Actor with ActorDefaults{
   val network: ActorRef = context.actorOf(Props[Network], "network")
   val iterations: Int = 15
-  val side: Int = 10
+  val side: Int = 100
   network ! MakeNetwork[AverageCounting]("grid", Map("side" -> side))
   //val n = 2
   //network ! MakeNetwork[AverageCounting]("line", Map("n" -> n))
@@ -65,7 +65,6 @@ class ACDemo extends Actor with ActorDefaults{
         }
         else {
           Plotter.makeTrajectory[(Double, Int)](trajectory, "Trajectory demo", (a: Acc[(Double, Int)]) => a.acc._1 / a.acc._2)
-          logger.info(s"$trajectory")
           context.parent ! PoisonPill
         }
       }

@@ -7,7 +7,6 @@ class AverageCounting(diameter: Int) extends Node(diameter){
   var setupReported = Set.empty[ActorRef]
   var setupPhase = true
 
-
   val intervals: Int = 20
   val variables: Int = 10
   val data: Array[Array[Double]] = Array.fill[Double](intervals, variables)(Double.MaxValue)
@@ -65,6 +64,12 @@ class AverageCounting(diameter: Int) extends Node(diameter){
         setupIterations += 1
         if(setupIterations >= diameter){
           setupPhase = false
+          range = maxSeen - minSeen
+          intervalWidth = range/intervals
+          individualInterval = ((value-minSeen)/intervalWidth).toInt.min(intervals-1) //TODO: Ugly fix for the fact that the last interval needs to be both sides inclusive
+          for(variable <- 0 until variables){
+            data(individualInterval)(variable) = -Math.log(Random.nextDouble())
+          }
           context.parent ! NodeReady
         }
         else context.parent ! AllReported
@@ -80,15 +85,6 @@ class AverageCounting(diameter: Int) extends Node(diameter){
   //    else context.parent ! AllReported
   //  }
   //}
-  def mainPhase(): Unit = {
-    range = maxSeen - minSeen
-    intervalWidth = range/intervals
-    individualInterval = ((value-minSeen)/intervalWidth).toInt.min(intervals-1) //TODO: Ugly fix for the fact that the last interval needs to be both sides inclusive
-    for(variable <- 0 until variables){
-      data(individualInterval)(variable) = -Math.log(Random.nextDouble())
-    }
-    context.parent ! NodeReady
-  }
   def result(): Double = {
     val S: Array[Double] = data.map(_.sum)
     val H: Array[Double] = S.map(a => if (a > 0) (variables-1)/a else 0)
