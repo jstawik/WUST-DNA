@@ -7,8 +7,9 @@ import com.cibo.evilplot.plot.aesthetics.DefaultTheme._
 import com.cibo.evilplot.plot.{Heatmap, LinePlot}
 import com.typesafe.scalalogging.Logger
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.{Duration, SECONDS}
+import scala.concurrent.{Await, Future}
 
 object Plotter {
   val logger: Logger = Logger(s"Plotter")
@@ -29,25 +30,24 @@ object Plotter {
       .write(fileName)
     logger.debug(s"Saved file as: ${fileName.getAbsolutePath}")
   }
-  def makeTrajectory[T](rawData: Seq[Evaluation[T]], title: String, key: Acc[T] => Double): Future[Unit] = Future {
+  def makeTrajectory(data: Seq[Evaluation], title: String, key: Double => Double): Future[Unit] = Future {
     val path = "generated/"
-    val sortedData = rawData.sortWith(_.frame < _.frame)
     val fileName = new File(path+ts()+"_"+title+".png")
-    var actual_points: Seq[Point] = Seq.empty
-    var max_points: Seq[Point] = Seq.empty
-    var min_points: Seq[Point] = Seq.empty
-    var avg_points: Seq[Point] = Seq.empty
-    for(x <- sortedData.indices){
-     actual_points = actual_points appended Point(x, key(sortedData(x).actual))
-     max_points = max_points appended Point(x, sortedData(x).max)
-     min_points = min_points appended Point(x, sortedData(x).min)
-     avg_points = avg_points appended Point(x, sortedData(x).avg)
+    var actualPoints: Seq[Point] = Seq.empty
+    var maxPoints: Seq[Point] = Seq.empty
+    var minPoints: Seq[Point] = Seq.empty
+    var avgPoints: Seq[Point] = Seq.empty
+    val timeout = Duration(60, SECONDS)
+    for(x <- data.indices){
+      actualPoints = actualPoints appended Point(data(x).frame, key(data(x).actuals.map(a => Await.result(a, timeout)).sum))
+      maxPoints = maxPoints appended Point(data(x).frame, data(x).results.map(a => Await.result(a, timeout)).max)
+      minPoints = minPoints appended Point(data(x).frame, data(x).results.map(a => Await.result(a, timeout)).min)
+      avgPoints = avgPoints appended Point(data(x).frame, data(x).results.map(a => Await.result(a, timeout)).sum/data(x).results.size)
     }
-
-    LinePlot.series(actual_points, "Actual", RGBA(20, 20, 200, 0.5))
-      .overlay(LinePlot.series(max_points, "Max", RGBA(200, 20, 20, 0.5)))
-      .overlay(LinePlot.series(min_points, "Min", RGBA(20, 200, 20, 0.5)))
-      .overlay(LinePlot.series(avg_points, "Avg", RGBA(200, 200, 20, 0.5)))
+    LinePlot.series(actualPoints, "Actual Value", RGBA(20, 20, 200, 0.5))
+      .overlay(LinePlot.series(maxPoints, "Maximum Result", RGBA(200, 20, 20, 0.5)))
+      .overlay(LinePlot.series(minPoints, "Minimum Result", RGBA(20, 200, 20, 0.5)))
+      .overlay(LinePlot.series(avgPoints, "Average Result", RGBA(200, 200, 20, 0.5)))
       .frame()
       .xGrid()
       .yGrid()

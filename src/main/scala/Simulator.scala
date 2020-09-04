@@ -7,45 +7,50 @@ object Simulator{
     system.actorOf(Props[ACDemo], "demo")
   }
 }
-class MaxPropDemo extends Actor with ActorDefaults {
-  val network: ActorRef = context.actorOf(Props[Network], "network")
-  val iterations: Int = 5
-  val side: Int = 3
-  network ! MakeNetwork[PropagateMax]("grid", Map("side" -> side))
 
-  var currentIteration = 0
-  var trajectory: Seq[Evaluation[Double]] = Seq.empty[Evaluation[Double]]
+//class MaxPropDemo extends Actor with ActorDefaults {
+//  val network: ActorRef = context.actorOf(Props[Network], "network")
+//  val iterations: Int = 5
+//  val side: Int = 3
+//  network ! MakeNetwork[PropagateMax]("grid", Map("side" -> side))
+//
+//  var currentIteration = 0
+//  var trajectory: Seq[Evaluation[Double]] = Seq.empty[Evaluation[Double]]
+//
+//  def receive: Receive = {
+//    case Evaluation(f, a, mx, mn, avg) =>
+//      trajectory = trajectory appended Evaluation[Double](f, a.asInstanceOf[Acc[Double]], mx, mn, avg)
+//    case NetworkReady =>
+//      logger.debug(s"NetworkReady received by ${self.path}, running first step")
+//      network ! SingleStep
+//    case AllReported =>
+//      if (currentIteration < iterations) {
+//        network ! PlotGrid(currentIteration)
+//        network ! Evaluate(currentIteration, Acc[Double](0), (a: Acc[Double], b: Double) => Acc[Double](a.acc.max(b)))
+//        currentIteration += 1
+//        network ! SingleStep
+//      } else {
+//        Plotter.makeTrajectory[Double](trajectory, "Trajectory demo", (a: Acc[Double]) => a.acc)
+//        context.parent ! PoisonPill
+//      }
+//    case m @_ => logger.error(s"Unhandled message from ${sender().path}: $m")
+//  }
+//}
 
-  def receive: Receive = {
-    case Evaluation(f, a, mx, mn, avg) =>
-      trajectory = trajectory appended Evaluation[Double](f, a.asInstanceOf[Acc[Double]], mx, mn, avg)
-    case NetworkReady =>
-      logger.debug(s"NetworkReady received by ${self.path}, running first step")
-      network ! SingleStep
-    case AllReported =>
-      if (currentIteration < iterations) {
-        network ! PlotGrid(currentIteration)
-        network ! Evaluate(currentIteration, Acc[Double](0), (a: Acc[Double], b: Double) => Acc[Double](a.acc.max(b)))
-        currentIteration += 1
-        network ! SingleStep
-      } else {
-        Plotter.makeTrajectory[Double](trajectory, "Trajectory demo", (a: Acc[Double]) => a.acc)
-        context.parent ! PoisonPill
-      }
-    case m @_ => logger.error(s"Unhandled message from ${sender().path}: $m")
-  }
-}
 class ACDemo extends Actor with ActorDefaults{
   val network: ActorRef = context.actorOf(Props[Network], "network")
   val iterations: Int = 15
-  val side: Int = 100
-  network ! MakeNetwork[AverageCounting]("grid", Map("side" -> side))
-  //val n = 2
-  //network ! MakeNetwork[AverageCounting]("line", Map("n" -> n))
+  //val side: Int = 10
+  val count: Int = 500
+  //network ! MakeNetwork[AverageCounting]("grid", Map("side" -> side))
+  val n = 500
+  print(s"n = $n: ")
+  val t0: Long = System.nanoTime
+  network ! MakeNetwork[AverageCounting]("line", Map("n" -> n))
 
   var setupPhase: Boolean = true
   var currentIteration = 0
-  var trajectory: Seq[Evaluation[(Double, Int)]] = Seq.empty
+  var trajectory: Seq[Evaluation] = Seq.empty
   val eval_function: (Acc[(Double, Int)], Double) => Acc[(Double, Int)] = (a, b) => Acc(a.acc._1 + b, a.acc._2 + 1)
   def receive: Receive = {
     case NetworkReady =>
@@ -59,17 +64,17 @@ class ACDemo extends Actor with ActorDefaults{
       else {
         if (currentIteration < iterations) {
           //network ! PlotGrid(currentIteration)
-          network ! Evaluate(currentIteration, Acc[(Double, Int)]((0.0, 0)), eval_function)
+          network ! Evaluate(currentIteration)
           currentIteration += 1
           network ! SingleStep
         }
         else {
-          Plotter.makeTrajectory[(Double, Int)](trajectory, "Trajectory demo", (a: Acc[(Double, Int)]) => a.acc._1 / a.acc._2)
+          Plotter.makeTrajectory(trajectory, "Trajectory demo", (a: Double) => a / count)
+          println((System.nanoTime - t0)/1e9d)
           context.parent ! PoisonPill
         }
       }
-    case Evaluation(f, a, mx, mn, avg) =>
-      trajectory = trajectory appended Evaluation[(Double, Int)](f, a.asInstanceOf[Acc[(Double, Int)]], mx, mn, avg)
+    case e @ Evaluation => trajectory = trajectory appended e.asInstanceOf[Evaluation]
     case m @_ => logger.error(s"Receive: Unhandled message from ${sender().path}: $m")
   }
 

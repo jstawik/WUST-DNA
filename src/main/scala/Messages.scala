@@ -1,4 +1,6 @@
 import akka.actor.ActorRef
+
+import scala.concurrent.Future
 import scala.reflect.ClassTag
 
 case object AskValue
@@ -17,8 +19,10 @@ case class GiveACTable(table: Array[Array[Double]])
 
 //Evaluation
 case class Acc[T](acc: T)
-case class Evaluate[T](frame: Int, acc: Acc[T], f: (Acc[T], Double) => Acc[T])
-case class Evaluation[T](frame: Int, actual: Acc[T], max: Double, min: Double, avg: Double)
+//case class Evaluate[T](frame: Int, acc: Acc[T], f: (Acc[T], Double) => Acc[T])
+//case class Evaluation[T](frame: Int, actual: Future[Acc[T]], max: Future[Double], min: Future[Double], avg: Future[Double], acc: Acc[T], f: (Acc[T], Double) => Acc[T])
+case class Evaluate(frame: Int)
+case class Evaluation(frame: Int, actuals: Iterable[Future[Double]], results: Iterable[Future[Double]])
 case class PlotGrid(frame: Int)
 
 //Synchronization

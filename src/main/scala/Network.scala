@@ -2,7 +2,7 @@ import akka.actor.{Actor, ActorRef, Props}
 import akka.pattern.ask
 
 import scala.collection.mutable
-import scala.concurrent.Await
+import scala.concurrent.{Await, Future}
 import scala.reflect._
 import scala.util.Random
 
@@ -25,10 +25,10 @@ class Network extends Actor with ActorDefaults{
       logger.debug(s"Network created, ${self.path} about to respond to ${sender().path} with NetworkReady")
       sender() ! NetworkReady
     case PlotGrid(frame) => Plotter.makeHeatMap(frame, gridView(), "Grid View")
-    case Evaluate(frame, acc, f) =>
-      val actual = nodes.map(rec => askValue(rec._2)).foldLeft(acc)(f)
-      val res =  nodes.map(rec => askData(rec._2, AskResult))
-      sender() ! Evaluation(frame, actual, res.reduce(_.max(_)), res.reduce(_.min(_)), res.sum/res.size)
+    case Evaluate(frame) =>
+      val actuals: Iterable[Future[Double]] = nodes.values.map(ask(_, AskValue).mapTo[Double])
+      val results: Iterable[Future[Double]] =  nodes.values.map(ask(_, AskResult).mapTo[Double])
+      sender() ! Evaluation(frame, actuals, results)
     case SetValue(node, value) => nodes(node) ! GiveValue(value)
     case SingleStep =>
       logger.debug(s"SingleStep received by ${self.path} propagating to $nodes")
@@ -86,21 +86,21 @@ class Network extends Actor with ActorDefaults{
 
   /**
    * Create a square grid of nodes
-   * @param side Side of grid
+   * @param side_a Side of grid
    * @tparam T Type of nodes
    */
-  def makeGrid[T <: Node: ClassTag](side: Int): Unit = {
-    val diameter =2 * side - 2
+  def makeGrid[T <: Node: ClassTag](side_a: Int): Unit = {
+    val diameter =2 * side_a - 2
     val coord = (x: Int, y:Int) => s"node_${x}_$y"
-    for(x <- 0 until side){
-      for(y <- 0 until side){
+    for(x <- 0 until side_a){
+      for(y <- 0 until side_a){
         val newNode = context.actorOf(Props(classTag[T].runtimeClass, diameter), coord(x,y))
         nodes = nodes + (coord(x,y) -> newNode)
       }
     }
-    for(x <- 0 until side){
-      for(y <- 0 until side){
-        val newNeighs = (i: Int) => List(i-1, i+1).filter(_>=0).filter(_<side)
+    for(x <- 0 until side_a){
+      for(y <- 0 until side_a){
+        val newNeighs = (i: Int) => List(i-1, i+1).filter(_>=0).filter(_<side_a)
         for(i <- newNeighs(x)) nodes(coord(x, y)) ! GiveNeighbour(nodes(coord(i, y)))
         for(i <- newNeighs(y)) nodes(coord(x, y)) ! GiveNeighbour(nodes(coord(x, i)))
       }
@@ -200,6 +200,5 @@ class Network extends Actor with ActorDefaults{
     val future = node ? message
     Await.result(future, timeout.duration).asInstanceOf[Double]
   }
-  def askValue(node: ActorRef): Double = askData(node, AskValue)
 }
 
