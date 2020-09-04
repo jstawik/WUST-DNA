@@ -16,7 +16,7 @@ class Network extends Actor with ActorDefaults{
     case AskValue => sender() ! value()
     case f @ MakeNetwork(networkShape, params) =>
       networkShape match {
-        case "grid" => makeGrid(params.getOrElse("side_a", 100).asInstanceOf[Int], params.getOrElse("side_b", 100).asInstanceOf[Int])(f.ct)
+        case "grid" => makeGrid(params.getOrElse("side_a", 1).asInstanceOf[Int], params.getOrElse("side_b", 1).asInstanceOf[Int])(f.ct)
         case "gridClique" => makeGridClique(params.getOrElse("side", 100).asInstanceOf[Int], params.getOrElse("csize", 10).asInstanceOf[Int])(f.ct)
         case "randomGeometric" => makeRandomGeometric(params.getOrElse("count", 100).asInstanceOf[Int], params.getOrElse("radius", 0.1).asInstanceOf[Double])(f.ct)
         case _ => logger.error(s"Unhandled message from ${sender().path.name}" + s" unknown networkShape: $networkShape")
@@ -100,8 +100,8 @@ class Network extends Actor with ActorDefaults{
     }
     for(x <- 0 until side_a){
       for(y <- 0 until side_b){
-        val newNeighs = (x: Int, y: Int) => for { a <- Seq(x-1, x+1) if x >= 0 && x < side_a
-                                                  b <- Seq(y-1, y+1) if y >= 0 && y < side_b
+        val newNeighs = (x: Int, y: Int) => for { a <- Seq(x-1, x+1) if a >= 0 && a < side_a
+                                                  b <- Seq(y-1, y+1) if b >= 0 && b < side_b
                                             } yield (a, b)
         for(i <- newNeighs(x, y)) nodes(coord(x, y)) ! GiveNeighbour(nodes(coord(i._1, i._2)))
       }

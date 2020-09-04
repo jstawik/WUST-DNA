@@ -40,13 +40,11 @@ object Simulator{
 class ACDemo extends Actor with ActorDefaults{
   val network: ActorRef = context.actorOf(Props[Network], "network")
   val iterations: Int = 50
-  val side_a: Int = 10
-  val side_b: Int = 10
+  val side_a: Int = 50
+  val side_b: Int = 20
   val count: Int = side_a * side_b
-  print(s"count = $count: ")
   val t0: Long = System.nanoTime
   network ! MakeNetwork[AverageCounting]("grid", Map("side_a" -> side_a, "side_b" -> side_b))
-
 
   var setupPhase: Boolean = true
   var currentIteration = 0
@@ -70,7 +68,7 @@ class ACDemo extends Actor with ActorDefaults{
         }
         else {
           Plotter.makeTrajectory(trajectory, "Trajectory demo", (a: Double) => a / count)
-          println((System.nanoTime - t0)/1e9d)
+          println(s"Total time for $count nodes: ${(System.nanoTime - t0)/1e9d}")
           context.parent ! PoisonPill
         }
       }
