@@ -1,5 +1,6 @@
 import java.io.File
 
+import BirdOperator.Pipe
 import com.cibo.evilplot.colors.{Color, RGBA, ScaledColorBar}
 import com.cibo.evilplot.geometry.Extent
 import com.cibo.evilplot.numeric.Point
@@ -39,7 +40,8 @@ object Plotter {
     var avgPoints: Seq[Point] = Seq.empty
     val timeout = Duration(60, SECONDS)
     for(x <- data.indices){
-      actualPoints = actualPoints appended Point(data(x).frame, key(data(x).actuals.map(a => Await.result(a, timeout)).sum))
+      //actualPoints = actualPoints appended Point(data(x).frame, key(data(x).actuals.map(a => Await.result(a, timeout)).sum))
+      actualPoints = actualPoints appended Point(data(x).frame, data(x).actuals.map(a => Await.result(a, timeout)).sum|>key)
       maxPoints = maxPoints appended Point(data(x).frame, data(x).results.map(a => Await.result(a, timeout)).max)
       minPoints = minPoints appended Point(data(x).frame, data(x).results.map(a => Await.result(a, timeout)).min)
       avgPoints = avgPoints appended Point(data(x).frame, data(x).results.map(a => Await.result(a, timeout)).sum/data(x).results.size)

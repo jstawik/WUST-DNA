@@ -16,8 +16,7 @@ class Network extends Actor with ActorDefaults{
     case AskValue => sender() ! value()
     case f @ MakeNetwork(networkShape, params) =>
       networkShape match {
-        case "grid" => makeGrid(params.getOrElse("side", 100).asInstanceOf[Int])(f.ct)
-        case "line" => makeLine(params.getOrElse("n", 100).asInstanceOf[Int])(f.ct)
+        case "grid" => makeGrid(params.getOrElse("side_a", 100).asInstanceOf[Int], params.getOrElse("side_b", 100).asInstanceOf[Int])(f.ct)
         case "gridClique" => makeGridClique(params.getOrElse("side", 100).asInstanceOf[Int], params.getOrElse("csize", 10).asInstanceOf[Int])(f.ct)
         case "randomGeometric" => makeRandomGeometric(params.getOrElse("count", 100).asInstanceOf[Int], params.getOrElse("radius", 0.1).asInstanceOf[Double])(f.ct)
         case _ => logger.error(s"Unhandled message from ${sender().path.name}" + s" unknown networkShape: $networkShape")
@@ -86,46 +85,30 @@ class Network extends Actor with ActorDefaults{
 
   /**
    * Create a square grid of nodes
-   * @param side_a Side of grid
+   * @param side_a Horizontal side of grid
+   * @param side_b Vertical side of grid
    * @tparam T Type of nodes
    */
-  def makeGrid[T <: Node: ClassTag](side_a: Int): Unit = {
-    val diameter =2 * side_a - 2
+  def makeGrid[T <: Node: ClassTag](side_a: Int, side_b: Int): Unit = {
+    val diameter = side_b + side_a - 2
     val coord = (x: Int, y:Int) => s"node_${x}_$y"
     for(x <- 0 until side_a){
-      for(y <- 0 until side_a){
+      for(y <- 0 until side_b){
         val newNode = context.actorOf(Props(classTag[T].runtimeClass, diameter), coord(x,y))
         nodes = nodes + (coord(x,y) -> newNode)
       }
     }
     for(x <- 0 until side_a){
-      for(y <- 0 until side_a){
-        val newNeighs = (i: Int) => List(i-1, i+1).filter(_>=0).filter(_<side_a)
-        for(i <- newNeighs(x)) nodes(coord(x, y)) ! GiveNeighbour(nodes(coord(i, y)))
-        for(i <- newNeighs(y)) nodes(coord(x, y)) ! GiveNeighbour(nodes(coord(x, i)))
+      for(y <- 0 until side_b){
+        val newNeighs = (x: Int, y: Int) => for { a <- Seq(x-1, x+1) if x >= 0 && x < side_a
+                                                  b <- Seq(y-1, y+1) if y >= 0 && y < side_b
+                                            } yield (a, b)
+        for(i <- newNeighs(x, y)) nodes(coord(x, y)) ! GiveNeighbour(nodes(coord(i._1, i._2)))
       }
     }
     establishNetwork("makeGrid")
   }
 
-  /**
-   * Create a line of nodes
-   * @param n Length of nodes
-   * @tparam T Type of nodes
-   */
-  def makeLine[T <: Node: ClassTag](n: Int): Unit = {
-    val diameter = 0.max(n - 1)
-    val coord = (i: Int) => s"node_$i"
-    for(i <- 0 until n){
-      val newNode = context.actorOf(Props(classTag[T].runtimeClass, diameter), coord(i))
-      nodes = nodes + (coord(i) -> newNode)
-    }
-    for(i <- 0 until n){
-      val newNeighs = (i: Int) => List(i-1, i+1).filter(_>=0).filter(_<n)
-      for(j <- newNeighs(i)) nodes(coord(i)) ! GiveNeighbour(nodes(coord(j)))
-    }
-    establishNetwork("makeLine")
-  }
 
   /**
    * Create a random Geometric graph

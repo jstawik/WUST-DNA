@@ -39,14 +39,14 @@ object Simulator{
 
 class ACDemo extends Actor with ActorDefaults{
   val network: ActorRef = context.actorOf(Props[Network], "network")
-  val iterations: Int = 15
-  //val side: Int = 10
-  val count: Int = 500
-  //network ! MakeNetwork[AverageCounting]("grid", Map("side" -> side))
-  val n = 500
-  print(s"n = $n: ")
+  val iterations: Int = 50
+  val side_a: Int = 10
+  val side_b: Int = 10
+  val count: Int = side_a * side_b
+  print(s"count = $count: ")
   val t0: Long = System.nanoTime
-  network ! MakeNetwork[AverageCounting]("line", Map("n" -> n))
+  network ! MakeNetwork[AverageCounting]("grid", Map("side_a" -> side_a, "side_b" -> side_b))
+
 
   var setupPhase: Boolean = true
   var currentIteration = 0
@@ -74,7 +74,7 @@ class ACDemo extends Actor with ActorDefaults{
           context.parent ! PoisonPill
         }
       }
-    case e @ Evaluation => trajectory = trajectory appended e.asInstanceOf[Evaluation]
+    case Evaluation(f, as, rs) => trajectory = trajectory appended Evaluation(f, as, rs)
     case m @_ => logger.error(s"Receive: Unhandled message from ${sender().path}: $m")
   }
 
