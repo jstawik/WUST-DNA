@@ -1,8 +1,8 @@
 import akka.actor.{Actor, ActorRef, ActorSystem, PoisonPill, Props}
 
 object Simulator{
+  val system: ActorSystem = ActorSystem("simulation")
   def main(args: Array[String]): Unit = {
-    val system = ActorSystem("simulation")
     //system.actorOf(Props[MaxPropDemo], "demo")
     system.actorOf(Props[ACDemo], "demo")
   }
@@ -39,12 +39,16 @@ object Simulator{
 
 class ACDemo extends Actor with ActorDefaults{
   val network: ActorRef = context.actorOf(Props[Network], "network")
-  val iterations: Int = 50
-  val side_a: Int = 50
-  val side_b: Int = 20
-  val count: Int = side_a * side_b
   val t0: Long = System.nanoTime
+  val iterations: Int = 15
+
+  val side_a: Int = 40
+  val side_b: Int = 25
+  val count: Int = side_a * side_b
   network ! MakeNetwork[AverageCounting]("grid", Map("side_a" -> side_a, "side_b" -> side_b))
+  //val count = 10
+  //val n = 3
+  //network ! MakeNetwork[AverageCounting]("NRegular", Map("count" -> count, "n" -> n))
 
   var setupPhase: Boolean = true
   var currentIteration = 0

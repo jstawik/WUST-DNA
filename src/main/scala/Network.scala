@@ -9,8 +9,8 @@ import scala.util.Random
 class Network extends Actor with ActorDefaults{
   private val value = () => Random.nextDouble() * 5
   var nodes = Map.empty[String, ActorRef]
-  var nodesReported = Set.empty[ActorRef]
-  var nodesReady = Set.empty[ActorRef]
+  val nodesReported = mutable.Set.empty[ActorRef]
+  val nodesReady = mutable.Set.empty[ActorRef]
 
   def receive: Receive = {
     case AskValue => sender() ! value()
@@ -19,6 +19,7 @@ class Network extends Actor with ActorDefaults{
         case "grid" => makeGrid(params.getOrElse("side_a", 1).asInstanceOf[Int], params.getOrElse("side_b", 1).asInstanceOf[Int])(f.ct)
         case "gridClique" => makeGridClique(params.getOrElse("side", 100).asInstanceOf[Int], params.getOrElse("csize", 10).asInstanceOf[Int])(f.ct)
         case "randomGeometric" => makeRandomGeometric(params.getOrElse("count", 100).asInstanceOf[Int], params.getOrElse("radius", 0.1).asInstanceOf[Double])(f.ct)
+        case "NRegular" => makeNRegular(params.getOrElse("count", 100).asInstanceOf[Int], params.getOrElse("n", 2).asInstanceOf[Int])(f.ct)
         case _ => logger.error(s"Unhandled message from ${sender().path.name}" + s" unknown networkShape: $networkShape")
       }
       logger.debug(s"Network created, ${self.path} about to respond to ${sender().path} with NetworkReady")
@@ -35,14 +36,14 @@ class Network extends Actor with ActorDefaults{
     case AllReported =>
       nodesReported += sender()
       if(nodesReported.size == nodes.size) {
-        nodesReported = Set.empty[ActorRef]
+        nodesReported.clear()
         context.parent ! AllReported
         logger.debug(s"AllReported sent to ${context.parent}")
       }
     case NodeReady =>
       nodesReady += sender()
       if(nodesReady.size == nodes.size){
-        nodesReady = Set.empty[ActorRef]
+        nodesReady.clear()
         context.parent ! AllReady
         logger.debug(s"AllReady sent to ${context.parent}")
       }
@@ -136,19 +137,19 @@ class Network extends Actor with ActorDefaults{
    * @param n Each node's degree
    * @tparam T Type of node
    */
-  def makeNRegular[T <: Node: ClassTag](count: Int, n: Int): Unit = {
-    val diameter = (count.toFloat/n).ceil
+  def makeNRegular[T <: Node: ClassTag](count: Int, n: Int): Unit = { //TODO: neighbours not given correctly
+    val diameter = (count.toFloat/n).ceil.toInt
     if ((n * count % 2) != 0) throw new IllegalArgumentException("`count` * `n` can't be odd")
     val coord = (i: Int) => s"node_$i"
-    for (i <- 0 until n) nodes = nodes + (coord(i) -> context.actorOf(Props(classTag[T].runtimeClass, diameter), coord(i)))
-    for (i <- 0 until n) {
+    for (i <- 0 until count) nodes = nodes + (coord(i) -> context.actorOf(Props(classTag[T].runtimeClass, diameter), coord(i)))
+    for (i <- 0 until count) {
       for (j <- 1 to n/2){
-        nodes(coord(j)) ! GiveNeighbour(nodes(coord(i+j)))
-        nodes(coord(i+j)) ! GiveNeighbour(nodes(coord(i)))
+        nodes(coord(j)) ! GiveNeighbour(nodes(coord((i+j)%count)))
+        nodes(coord((i+j)%count)) ! GiveNeighbour(nodes(coord(i)))
       }
       if(n % 2 != 0 ){
-        nodes(coord(i)) ! GiveNeighbour(nodes(coord((i+n/2)%n)))
-        nodes(coord((i+n/2)%n)) ! GiveNeighbour(nodes(coord(i)))
+        nodes(coord(i)) ! GiveNeighbour(nodes(coord((i+count/2)%count)))
+        nodes(coord((i+count/2)%count)) ! GiveNeighbour(nodes(coord(i)))
       }
     }
     establishNetwork("makeNRegular")

@@ -32,7 +32,7 @@ class AverageCounting(diameter: Int) extends Node(diameter){
       else {
         neighs.foreach(_ ! GiveACTable(data))
         //for {i <- data.indices} neighs.foreach(_ ! GiveACInterval(i, data(i)))
-        logger.debug(s"SingleStep main phase ran for ${self.path}")
+        logger.debug(s"SingleStep main phase ran for ${self.path}: ${result()}")
       }
     case GiveACTable(table) =>
       for(row <- table.indices){
@@ -59,7 +59,7 @@ class AverageCounting(diameter: Int) extends Node(diameter){
       maxSeen = max.max(maxSeen)
       neighsReported += sender
       if(neighsReported.size == neighs.size){
-        neighsReported = Set.empty[ActorRef]
+        neighsReported.clear()
         logger.debug(s"AllReported sent by ${self.path}")
         setupIterations += 1
         if(setupIterations >= diameter){
@@ -67,9 +67,8 @@ class AverageCounting(diameter: Int) extends Node(diameter){
           range = maxSeen - minSeen
           intervalWidth = range/intervals
           individualInterval = ((value-minSeen)/intervalWidth).toInt.min(intervals-1) //TODO: Ugly fix for the fact that the last interval needs to be both sides inclusive
-          for(variable <- 0 until variables){
-            data(individualInterval)(variable) = -Math.log(Random.nextDouble())
-          }
+          //data(individualInterval).foreach(_ = -Math.log(Random.nextDouble()))
+          data(individualInterval).indices.foreach(data(individualInterval)(_) =  -Math.log(Random.nextDouble()))
           context.parent ! NodeReady
         }
         else context.parent ! AllReported

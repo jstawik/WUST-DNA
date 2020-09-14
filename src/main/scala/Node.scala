@@ -1,14 +1,14 @@
 import akka.actor._
 
+import scala.collection.mutable
 import scala.util.Random
-
 
 abstract class Node(val diameter: Int) extends ActorDefaults{
   logger.debug(s"Created as instance of ${this.getClass.getName}")
   var value: Double = 0.0
   var sent: Int = 0
   var neighs = Seq.empty[ActorRef]
-  var neighsReported = Set.empty[ActorRef]
+  val neighsReported = mutable.Set.empty[ActorRef]
   def individualReceive: Receive
   def commonReceive: Receive = {
     case GiveNeighbour(neighbour) =>
@@ -32,7 +32,7 @@ abstract class Node(val diameter: Int) extends ActorDefaults{
   def synchronizationCheck(sender: ActorRef): Unit = {
     neighsReported += sender
     if(neighsReported.size == neighs.size){
-      neighsReported = Set.empty[ActorRef]
+      neighsReported.clear()
       context.parent ! AllReported
       logger.debug(s"AllReported sent by ${self.path}")
     }

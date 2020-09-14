@@ -14,6 +14,7 @@ import scala.concurrent.{Await, Future}
 
 object Plotter {
   val logger: Logger = Logger(s"Plotter")
+  //implicit val executionContext: ExecutionContext = Simulator.system.dispatchers.lookup("plotter-dispatcher")
   val ts: () => String = () =>  System.currentTimeMillis().toString
   def makeHeatMap(frame: Int, data: Seq[Seq[Double]], title: String): Unit = {
     val path = "generated/"
